@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
-int addStudent(int, char*, char*, int, float, char*);
-int updateStudent(int, char*, char*, int, float, char*);
+int addStudent(int, char*, char*, float, char*);
+int updateStudent(int, char*, char*, float, char*);
 int deleteStudent(int);
 
 typedef struct student_records{
-	struct student_records* next = NULL;
-	struct student_records* prev = NULL;
+	struct student_records* next;
+	struct student_records* prev;
 	char* first_name;
 	char* last_name;
 
@@ -16,7 +17,7 @@ typedef struct student_records{
 	float gpa;
 } student_records;
 
-student_records* database = NULL;
+student_records* database;
 
 int main(int argc, char** argv) {
 	int vflag = 0;
@@ -25,6 +26,10 @@ int main(int argc, char** argv) {
 	char* major = NULL;
 	char* filename = NULL;
   	int c;
+  	
+  	database = (student_records*)malloc(sizeof(student_records));
+  	
+  	printf("%d\n", argc);
   	
   	if (argc <= 1){
   		printf("NO QUERY PROVIDED\n");
@@ -59,13 +64,55 @@ int main(int argc, char** argv) {
 int deleteStudent(int id){
 	student_records* cursor = database;
 	while(cursor != NULL){
-		if (cursor.id == id){
-			cursor.prev.next = cursor.next;
-			cursor.next.prev = cursor.prev;
+		if (cursor->id == id){
+			cursor->prev->next = cursor->next;
+			cursor->next->prev = cursor->prev;
 			free(cursor);
 			return 0;
 		} else {
-			cursor = cursor.next;
+			cursor = cursor->next;
+		}
+	}
+	return -1;
+}
+
+int addStudent(int id, char* firstName, char* lastName, float gpa, char* major){
+	student_records* cursor = database;
+	while(cursor != NULL){
+		if (cursor->id == id){
+			return -1;
+		} else if (cursor->id > id){
+			student_records* add;
+			add->next = cursor;
+			add->prev = cursor->prev;
+			add->id = id;
+			add->first_name = firstName;
+			add->last_name = lastName;
+			add->gpa = gpa;
+			add->major = major;
+			cursor->prev->next = add;
+			cursor->prev = add;
+			return 0;
+		} else {
+			cursor = cursor->next;
+		}
+	}
+}
+
+int updateStudent(int id, char* firstName, char* lastName, float gpa, char* major){
+	student_records* cursor = database;
+	while(cursor != NULL){
+		if (cursor->id == id){
+			free(cursor->first_name);
+			free(cursor->last_name);
+			free(cursor->major);
+			cursor->first_name = firstName;
+			cursor->last_name = lastName;
+			cursor->gpa = gpa;
+			cursor->major = major;
+			return 0;
+		} else {
+			cursor = cursor->next;
 		}
 	}
 	return -1;
