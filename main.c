@@ -8,6 +8,7 @@ int updateStudent(int, char*, char*, float, char*);
 int deleteStudent(int);
 int stringCopy(char*, char**);
 int loadDatabase();
+int processFlags(int, char*, char*, char*);
 
 typedef struct student_records{
 	struct student_records* next;
@@ -25,25 +26,25 @@ FILE* file;
 FILE* out;
 
 int main(int argc, char** argv) {
-	int vflag = 0;
+	int vflag;
 	char* id = NULL;
 	char* lastname = NULL;
 	char* major = NULL;
-	char* filename = NULL;
-  	int c;
-  	out = stdout;
+	int c;
+	out = stdout;
   	
   	database = (student_records*)malloc(sizeof(student_records));
   	database->prev = NULL;
   	database->next = NULL;
   	database->id = -1;
   	
-  	if (argc <= 1){
+  	if (argc <= 2){
   		fprintf(out, "NO QUERY PROVIDED\n");
   		return 1;
   	}
   	
-  	char* fileIn = *(argv+1);
+  	file = fopen(*(argv+1), "r+");
+	loadDatabase();
   	
   	while((c = getopt(argc, argv, "vi:f:m:o:")) != -1){
 		switch(c){
@@ -60,23 +61,17 @@ int main(int argc, char** argv) {
 				major = optarg;
 				break;
 			case 'o':
-				filename = optarg;
+				out = fopen(optarg, "w");
 				break;
 			default:
 				fprintf(out, "FAILED TO PARSE FILE\n");
 				return 1;
 		}
 	}
+	processFlags(vflag, id, lastname, major);
 	
-	file = fopen(fileIn, "r+");
-	loadDatabase();
-	while(database != NULL){
-		printf("%d:%s %s %.2f %s->", database->id, database->first_name, database->last_name, database->gpa, database->major);
-		database = database->next;
-	}
-	printf("\n");
 	fclose(file);
-  return 0;
+	return 0;
 }
 
 int loadDatabase(){
@@ -91,7 +86,7 @@ int loadDatabase(){
 		c = fscanf(file, "%s", command);
 		if (c == EOF) return 0;
 
-		switch(toupper(*command)){
+		switch(*command){
 			case 'A':
 				fscanf(file, "%d %s %s %f %s ", &id, fName, lName, &gpa, major);
 				addStudent(id, fName, lName, gpa, major);
@@ -147,7 +142,6 @@ int addStudent(int id, char* firstName, char* lastName, float gpa, char* major){
 			} else {
 				student_records* add;
 				add = (student_records*)malloc(sizeof(student_records));
-				printf("%p %p\n", add->first_name, firstName);
 				add->next = NULL;
 				add->prev = cursor;
 				add->id = id;
@@ -208,5 +202,16 @@ int stringCopy(char* source, char** dest){
 	for(i = 0; i <= len; i++)
 		*(temp+i) = *(source+i);
 	(*dest) = temp;
+	return 0;
+}
+
+int processFlags(int vflag, char* id, char* lastName, char* major){
+	if (vflag){
+		student_records* cursor = database;
+		while(cursor != NULL){
+			fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
+			cursor = cursor->next;
+		}
+	}
 	return 0;
 }
