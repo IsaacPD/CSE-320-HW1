@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
 
 int addStudent(int, char*, char*, float, char*);
 int updateStudent(int, char*, char*, float, char*);
@@ -9,6 +10,8 @@ int deleteStudent(int);
 int stringCopy(char*, char**);
 int loadDatabase();
 int processFlags(int, char*, char*, char*);
+int stringEquals(char*, char*);
+int stringToInt(char*);
 
 typedef struct student_records{
 	struct student_records* next;
@@ -206,12 +209,60 @@ int stringCopy(char* source, char** dest){
 }
 
 int processFlags(int vflag, char* id, char* lastName, char* major){
-	if (vflag){
+	if (vflag && id == NULL && lastName == NULL && major == NULL){
 		student_records* cursor = database;
 		while(cursor != NULL){
 			fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
 			cursor = cursor->next;
 		}
+	} 
+	if (id != NULL){ //MATCH ID
+		student_records* cursor = database;
+		int i = stringToInt(id);
+		while(cursor != NULL){
+			if (i == cursor->id){
+				fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
+				break;
+			}
+			cursor = cursor->next;
+		}
+	}
+	if (lastName != NULL){
+		student_records* cursor = database;
+		while(cursor != NULL){
+			if (stringEquals(cursor->last_name, lastName))
+				fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
+			cursor = cursor->next;
+		}
+	} 
+	if (major != NULL){
+		student_records* cursor = database;
+		while(cursor != NULL){
+			if (stringEquals(cursor->major, major))
+				fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
+			cursor = cursor->next;
+		}
 	}
 	return 0;
+}
+
+int stringEquals(char* s1, char* s2){
+	int i;
+	for (i = 0; *(s1+i) != '\0'; i++){
+		if (toupper(*(s1+i)) != toupper(*(s2+i)))
+			return 0;
+	}
+	return 1;
+}
+
+int stringToInt(char* s){
+	int i, num = 0;
+	int len = 0;
+	for(i = 0; *(s+i) != '\0'; i++)
+		len++;
+	
+	for(i = len-1; i >=0; i--){
+		num = num + (*(s+i)- '0') * (int)pow(10, (len - 1) - i);
+	}
+	return num;
 }
