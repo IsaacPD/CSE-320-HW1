@@ -14,8 +14,8 @@ int stringEquals(char*, char*);
 int stringToInt(char*);
 
 typedef struct student_records{
-	struct student_records* next;
-	struct student_records* prev;
+	struct student_records* left;
+	struct student_records* right;
 	char* first_name;
 	char* last_name;
 
@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
   	}
   	
   	file = fopen(*(argv+1), "r+");
-		if (loadDatabase() == -1) return -1;
+	loadDatabase();
   	
   	while((c = getopt(argc, argv, "vi:f:m:o:g")) != -1){
 		switch(c){
@@ -75,52 +75,38 @@ int main(int argc, char** argv) {
 		}
 	}
 	processFlags(vflag, id, lastname, major, gflag);
-	free(database);
+	
 	fclose(file);
 	return 0;
 }
 
 int loadDatabase(){
-	char* command = (char*)malloc(7 * sizeof(char));
-	char* fName = (char*)malloc(100 * sizeof(char));
-	char* lName = (char*)malloc(100 * sizeof(char));
-	char* major = (char*)malloc(4 * sizeof(char));
+	char command[255];
+	char fName[255];
+	char lName[255];
+	char major[255];
 	int id;
 	float gpa;
-	int c, r;
+	int c;
 	do{
 		c = fscanf(file, "%s", command);
-		if (c == EOF) {
-			free(command);
-			free(fName);
-			free(lName);
-			free(major);
-			return 0;
-		}
+		if (c == EOF) return 0;
 
 		switch(*command){
 			case 'A':
 				fscanf(file, "%d %s %s %f %s ", &id, fName, lName, &gpa, major);
-				if (addStudent(id, fName, lName, gpa, major) == -1){
-					fprintf(out, "ID NOT UNIQUE\n");
-					return -1;
-				}
+				addStudent(id, fName, lName, gpa, major);
 				break;
 			case 'D':
 				fscanf(file, "%d ", &id);
-				r = deleteStudent(id);
+				deleteStudent(id);
 				break;
 			case 'U':
 				fscanf(file, "%d %s %s %f %s ", &id, fName, lName, &gpa, major);
-				r = updateStudent(id, fName, lName, gpa, major);
+				updateStudent(id, fName, lName, gpa, major);
 				break;
 			default:
-				fprintf(out, "FAILED TO PARSE FILE\n");
 				return -1;
-		}
-		if (r == -1){
-			fprintf(out, "STUDENT RECORD CANNOT BE DELETED NOR UPDATED\n");
-			return -1;
 		}
 	} while (1);
 }
