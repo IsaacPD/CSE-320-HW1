@@ -18,9 +18,10 @@ typedef struct student_records{
 	struct student_records* prev;
 	char* first_name;
 	char* last_name;
-
+	
 	char* major;
 	int id;
+	int filter;
 	float gpa;
 } student_records;
 
@@ -29,7 +30,7 @@ FILE* file;
 FILE* out;
 
 int main(int argc, char** argv) {
-	int vflag, gflag;
+	int vflag = 0, gflag = 0;
 	char* id = NULL;
 	char* lastname = NULL;
 	char* major = NULL;
@@ -40,9 +41,10 @@ int main(int argc, char** argv) {
   	database->prev = NULL;
   	database->next = NULL;
   	database->id = -1;
+  	database->filter = 1;
   	
   	if (argc <= 2){
-  		fprintf(out, "NO QUERY PROVIDED\n");
+  		printf("NO QUERY PROVIDED\n");
   		return 1;
   	}
   	
@@ -64,13 +66,26 @@ int main(int argc, char** argv) {
 				major = optarg;
 				break;
 			case 'o':
-				out = fopen(optarg, "w");
+				if (access(optarg, F_OK) == 0){
+					char yn;
+					printf("The file already exists. Would you like to override it? (y/n): ");
+					scanf(" %c", &yn);
+					if (yn == 'y'){
+						out = fopen(optarg, "w");
+					}
+					else {
+						printf("FILE EXISTS\n");
+						return 1;
+					}
+				} else {
+					out = fopen(optarg, "w");
+				}
 				break;
 			case 'g':
 				gflag = 1;
 				break;
 			default:
-				fprintf(out, "FAILED TO PARSE FILE\n");
+				printf("FAILED TO PARSE FILE\n");
 				return 1;
 		}
 	}
@@ -102,8 +117,8 @@ int loadDatabase(){
 			case 'A':
 				fscanf(file, "%d %s %s %f %s ", &id, fName, lName, &gpa, major);
 				if (addStudent(id, fName, lName, gpa, major) == -1){
-					fprintf(out, "ID NOT UNIQUE\n");
-					return -1;
+					printf("ID NOT UNIQUE\n");
+					goto free_error;
 				}
 				break;
 			case 'D':
@@ -115,14 +130,20 @@ int loadDatabase(){
 				r = updateStudent(id, fName, lName, gpa, major);
 				break;
 			default:
-				fprintf(out, "FAILED TO PARSE FILE\n");
-				return -1;
+				printf("FAILED TO PARSE FILE\n");
+				goto free_error;
 		}
 		if (r == -1){
-			fprintf(out, "STUDENT RECORD CANNOT BE DELETED NOR UPDATED\n");
-			return -1;
+			printf("STUDENT RECORD CANNOT BE DELETED NOR UPDATED\n");
+			goto free_error;
 		}
 	} while (1);
+free_error:
+	free(command);
+	free(fName);
+	free(lName);
+	free(major);
+	return -1;
 }
 
 int deleteStudent(int id){
@@ -164,6 +185,7 @@ int addStudent(int id, char* firstName, char* lastName, float gpa, char* major){
 				add = (student_records*)malloc(sizeof(student_records));
 				add->next = NULL;
 				add->prev = cursor;
+				add->filter = 1;
 				add->id = id;
 				stringCopy(firstName, &(add->first_name));
 				stringCopy(lastName, &(add->last_name));
@@ -221,59 +243,79 @@ int stringCopy(char* source, char** dest){
 	char* temp = (char*)malloc((len+1) * sizeof(char));
 	for(i = 0; i <= len; i++)
 		*(temp+i) = *(source+i);
+	free(*dest);
 	(*dest) = temp;
 	return 0;
 }
 
 int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
-	student_records* cursor;
+	student_records* cursor = database;
+	int numStudents = 0;
+	
+	float average = 0.0;
+	int total = 0;
+	while(cursor != NULL){
+		average = average + cursor->gpa;
+		total++;
+		cursor = cursor->next;
+		numStudents++;
+	}
+	average = average/(float)total;
+	
+	if (gflag)
+		fprintf(out, "%.2f\n", average);
+	
 	if (vflag && id == NULL && lastName == NULL && major == NULL){
 		cursor = database;
 		while(cursor != NULL){
 			fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
 			cursor = cursor->next;
 		}
-	}
-	if (gflag){
-		cursor = database;
-		float average = 0.0;
-		int total = 0;
-		while(cursor != NULL){
-			average = average + cursor->gpa;
-			total++;
-			cursor = cursor->next;
-		}
-		average = average/(float)total;
-		printf("%.2f\n", average);
-	}
-	if (id != NULL){ //MATCH ID
-		cursor = database;
-		int i = stringToInt(id);
-		while(cursor != NULL){
-			if (i == cursor->id){
-				fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
-				break;
+		return 0;
+	} else if (!vflag){
+		if (id != NULL){ //MATCH ID
+			cursor = database;
+			int i = stringToInt(id);
+			while(cursor != NULL){
+				if (i != cursor->id){
+					cursor->filter = 0;
+					numStudents--;
+				}
+				cursor = cursor->next;
 			}
-			cursor = cursor->next;
 		}
+		if (lastName != NULL){
+			cursor = database;
+			while(cursor != NULL){
+				if (stringEquals(cursor->last_name, lastName) == 0 && cursor->filter){
+					cursor->filter = 0;
+					numStudents--;
+				}
+				cursor = cursor->next;
+			}
+		} 
+		if (major != NULL){
+			cursor = database;
+			while(cursor != NULL){
+				if (stringEquals(cursor->major, major) == 0 && cursor->filter){
+					cursor->filter = 0;
+					numStudents--;
+				}
+				cursor = cursor->next;
+			}
+		}
+		if (numStudents > 0){
+			cursor = database;
+			while(cursor != NULL){
+				if(cursor->filter)
+					fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
+				cursor = cursor->next;
+			}
+		} else {
+			printf("STUDENT RECORD NOT FOUND");
+		}
+		return 0;
 	}
-	if (lastName != NULL){
-		cursor = database;
-		while(cursor != NULL){
-			if (stringEquals(cursor->last_name, lastName))
-				fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
-			cursor = cursor->next;
-		}
-	} 
-	if (major != NULL){
-		cursor = database;
-		while(cursor != NULL){
-			if (stringEquals(cursor->major, major))
-				fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
-			cursor = cursor->next;
-		}
-	}
-	return 0;
 }
 
 int stringEquals(char* s1, char* s2){
