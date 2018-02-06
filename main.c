@@ -124,7 +124,8 @@ int loadDatabase(){
 				fscanf(file, " %f %s", &gpa, major);
 				*fName = toupper(*fName);
 				*lName = toupper(*lName);
-				for (int i = 0; i < 3; i++)
+				int i;
+				for (i = 0; i < 3; i++)
 					*(major + i) = toupper(*(major + i));
 				
 				if (formatted(id, fName, lName, gpa, major) == 0 || stringLen(gpaS, 0) != 4){
