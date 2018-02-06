@@ -12,6 +12,8 @@ int loadDatabase();
 int processFlags(int, char*, char*, char*, int);
 int stringEquals(char*, char*);
 int stringToInt(char*);
+int stringLen(char*);
+int formatted(int, char*, char*, float, char*);
 
 typedef struct student_records{
 	struct student_records* next;
@@ -97,9 +99,10 @@ int main(int argc, char** argv) {
 
 int loadDatabase(){
 	char* command = (char*)malloc(7 * sizeof(char));
-	char* fName = (char*)malloc(100 * sizeof(char));
-	char* lName = (char*)malloc(100 * sizeof(char));
-	char* major = (char*)malloc(4 * sizeof(char));
+	char* fName = (char*)malloc(21 * sizeof(char));
+	char* lName = (char*)malloc(21 * sizeof(char));
+	char* major = (char*)malloc(14 * sizeof(char));
+	char* gpaS = (char*)malloc(15 * sizeof(char));
 	int id;
 	float gpa;
 	int c, r;
@@ -115,19 +118,31 @@ int loadDatabase(){
 
 		switch(*command){
 			case 'A':
-				fscanf(file, "%d %s %s %f %s ", &id, fName, lName, &gpa, major);
-				if (addStudent(id, fName, lName, gpa, major) == -1){
-					printf("ID NOT UNIQUE\n");
+			case 'U':
+				fscanf(file, "%d %s %s %s ", &id, fName, lName, gpaS);
+				fseek(file, (-1 - stringLen(gpaS)), SEEK_CUR);
+				fscanf(file, "%f %s", &gpa, major);
+				
+				if (formatted(id, fName, lName, gpa, major) == 0 || stringLen(gpaS) != 4){
+					printf("FAILED TO PARSE FILE\n");
 					goto free_error;
+				}
+				
+				if (*command == 'A'){
+					if (addStudent(id, fName, lName, gpa, major) == -1){
+						printf("ID NOT UNIQUE\n");
+						goto free_error;
+					}
+				} else {
+					r = updateStudent(id, fName, lName, gpa, major);
 				}
 				break;
 			case 'D':
 				fscanf(file, "%d ", &id);
-				r = deleteStudent(id);
-				break;
-			case 'U':
-				fscanf(file, "%d %s %s %f %s ", &id, fName, lName, &gpa, major);
-				r = updateStudent(id, fName, lName, gpa, major);
+				if (id > 0)
+					r = deleteStudent(id);
+				else
+					printf("FAILED TO PARSE FILE\n");
 				break;
 			default:
 				printf("FAILED TO PARSE FILE\n");
@@ -237,9 +252,8 @@ int updateStudent(int id, char* firstName, char* lastName, float gpa, char* majo
 
 int stringCopy(char* source, char** dest){
 	int i;
-	int len = 0;
-	for(i = 0; *(source+i) != '\0'; i++)
-		len++;
+	int len = stringLen(source);
+	
 	char* temp = (char*)malloc((len+1) * sizeof(char));
 	for(i = 0; i <= len; i++)
 		*(temp+i) = *(source+i);
@@ -327,14 +341,30 @@ int stringEquals(char* s1, char* s2){
 	return 1;
 }
 
-int stringToInt(char* s){
-	int i, num = 0;
-	int len = 0;
+int stringLen(char* s){
+	int i, len = 0;
 	for(i = 0; *(s+i) != '\0'; i++)
 		len++;
+	return len;
+}
+
+int stringToInt(char* s){
+	int i, num = 0;
+	int len = stringLen(s);
 	
 	for(i = len-1; i >=0; i--){
 		num = num + (*(s+i)- '0') * (int)pow(10, (len - 1) - i);
 	}
 	return num;
+}
+
+int formatted(int id, char* fName, char* lName, float gpa, char* major){
+	int fLen = stringLen(fName);
+	int lLen = stringLen(lName);
+	int mLen = stringLen(major);
+	if(id > 0 && fLen >= 3 && fLen <= 10
+				&& lLen >= 3 && lLen <= 10
+				&& mLen == 3 && gpa >= 1 && gpa <= 4)
+		return 1;
+	else return 0;
 }
