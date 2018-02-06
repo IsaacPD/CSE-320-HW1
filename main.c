@@ -12,7 +12,7 @@ int loadDatabase();
 int processFlags(int, char*, char*, char*, int);
 int stringEquals(char*, char*);
 int stringToInt(char*);
-int stringLen(char*);
+int stringLen(char*, int);
 int formatted(int, char*, char*, float, char*);
 
 typedef struct student_records{
@@ -120,10 +120,14 @@ int loadDatabase(){
 			case 'A':
 			case 'U':
 				fscanf(file, "%d %s %s %s ", &id, fName, lName, gpaS);
-				fseek(file, (-1 - stringLen(gpaS)), SEEK_CUR);
-				fscanf(file, "%f %s", &gpa, major);
+				fseek(file, (-1 - stringLen(gpaS, 0)), SEEK_CUR);
+				fscanf(file, " %f %s", &gpa, major);
+				*fName = toupper(*fName);
+				*lName = toupper(*lName);
+				for (int i = 0; i < 3; i++)
+					*(major + i) = toupper(*(major + i));
 				
-				if (formatted(id, fName, lName, gpa, major) == 0 || stringLen(gpaS) != 4){
+				if (formatted(id, fName, lName, gpa, major) == 0 || stringLen(gpaS, 0) != 4){
 					printf("FAILED TO PARSE FILE\n");
 					goto free_error;
 				}
@@ -252,7 +256,7 @@ int updateStudent(int id, char* firstName, char* lastName, float gpa, char* majo
 
 int stringCopy(char* source, char** dest){
 	int i;
-	int len = stringLen(source);
+	int len = stringLen(source, 0);
 	
 	char* temp = (char*)malloc((len+1) * sizeof(char));
 	for(i = 0; i <= len; i++)
@@ -265,7 +269,6 @@ int stringCopy(char* source, char** dest){
 int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 	student_records* cursor = database;
 	int numStudents = 0;
-	
 	float average = 0.0;
 	int total = 0;
 	while(cursor != NULL){
@@ -287,6 +290,13 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 		}
 		return 0;
 	} else if (!vflag){
+		if (formatted(id == NULL ? 3 : stringToInt(id),	"Default",
+			 	lastName == NULL ? "Default" : lastName, 3.00,
+				major == NULL ? "TST" : major) == 0){
+	 		printf("OTHER ERROR\n");
+	 		return -1;
+	 	}
+	 	
 		if (id != NULL){ //MATCH ID
 			cursor = database;
 			int i = stringToInt(id);
@@ -329,7 +339,7 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 			printf("STUDENT RECORD NOT FOUND");
 		}
 		return 0;
-	}
+		}
 }
 
 int stringEquals(char* s1, char* s2){
@@ -341,27 +351,30 @@ int stringEquals(char* s1, char* s2){
 	return 1;
 }
 
-int stringLen(char* s){
+int stringLen(char* s, int checkAlpha){
 	int i, len = 0;
-	for(i = 0; *(s+i) != '\0'; i++)
-		len++;
+	for(i = 0; *(s+i) != '\0'; i++){
+			len++;
+			if (checkAlpha && isalpha(*(s+i)) == 0) return -1;
+	}
 	return len;
 }
 
 int stringToInt(char* s){
 	int i, num = 0;
-	int len = stringLen(s);
-	
+	int len = stringLen(s, 0);
+
 	for(i = len-1; i >=0; i--){
+		if (isalpha(*(s+i))) return -1;
 		num = num + (*(s+i)- '0') * (int)pow(10, (len - 1) - i);
 	}
 	return num;
 }
 
 int formatted(int id, char* fName, char* lName, float gpa, char* major){
-	int fLen = stringLen(fName);
-	int lLen = stringLen(lName);
-	int mLen = stringLen(major);
+	int fLen = stringLen(fName, 1);
+	int lLen = stringLen(lName, 1);
+	int mLen = stringLen(major, 0);
 	if(id > 0 && fLen >= 3 && fLen <= 10
 				&& lLen >= 3 && lLen <= 10
 				&& mLen == 3 && gpa >= 1 && gpa <= 4)
