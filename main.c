@@ -14,6 +14,7 @@ int stringEquals(char*, char*);
 int stringToInt(char*);
 int stringLen(char*, int);
 int formatted(int, char*, char*, float, char*);
+void freeDatabase();
 
 typedef struct student_records{
 	struct student_records* next;
@@ -39,21 +40,26 @@ int main(int argc, char** argv) {
 	int c;
 	out = stdout;
   	
-  	database = (student_records*)malloc(sizeof(student_records));
-  	database->prev = NULL;
-  	database->next = NULL;
-  	database->id = -1;
-  	database->filter = 1;
+	database = (student_records*)malloc(sizeof(student_records));
+	database->prev = NULL;
+	database->next = NULL;
+	database->id = -1;
+	database->filter = 1;
   	
-  	if (argc <= 2){
-  		printf("NO QUERY PROVIDED\n");
-  		return 1;
-  	}
+	if (argc <= 2){
+		printf("NO QUERY PROVIDED\n");
+		freeDatabase();
+		return 1;
+  }
+	
+	file = fopen(*(argv+1), "r+");
+	if (loadDatabase() == -1) {
+		freeDatabase();
+		fclose(file);
+		return -1;
+	}
   	
-  	file = fopen(*(argv+1), "r+");
-		if (loadDatabase() == -1) return -1;
-  	
-  	while((c = getopt(argc, argv, "vi:f:m:o:g")) != -1){
+	while((c = getopt(argc, argv, "vi:f:m:o:g")) != -1){
 		switch(c){
 			case 'v':
 				vflag = 1;
@@ -88,13 +94,30 @@ int main(int argc, char** argv) {
 				break;
 			default:
 				printf("FAILED TO PARSE FILE\n");
+				freeDatabase();
+				fclose(file);
 				return 1;
 		}
 	}
 	processFlags(vflag, id, lastname, major, gflag);
-	free(database);
+	
+	freeDatabase();
 	fclose(file);
+	if (out != stdout) fclose(out);
 	return 0;
+}
+
+void freeDatabase(){
+	student_records* next = database, *current = database;
+
+	while(next != NULL){
+		next = next->next;
+		free(current->first_name);
+		free(current->last_name);
+		free(current->major);
+		free(current);
+		current = next;
+	}
 }
 
 int loadDatabase(){
@@ -113,6 +136,7 @@ int loadDatabase(){
 			free(fName);
 			free(lName);
 			free(major);
+			free(gpaS);
 			return 0;
 		}
 
@@ -163,6 +187,7 @@ free_error:
 	free(fName);
 	free(lName);
 	free(major);
+	free(gpaS);
 	return -1;
 }
 
