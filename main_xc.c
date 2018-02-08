@@ -191,6 +191,23 @@ free_error:
 	return -1;
 }
 
+student_records* findMin(student_records* cursor){
+	while (cursor->left != NULL)
+		cursor = cursor->left;
+	return cursor;
+}
+
+void replaceNode(student_records* delete, student_records* replacement){
+	if (delete->parent != NULL){
+		if (delete == delete->parent->left)
+			delete->parent->left = replacement;
+		else 
+			delete->parent->right = replacement;		
+	}
+	if (replacement != NULL)
+		replacement->parent = delete->parent;
+}
+
 int deleteStudent(student_records* cursor, int id){
 	if(cursor->id > id){
 		if (cursor->left == NULL) return -1;
@@ -201,38 +218,42 @@ int deleteStudent(student_records* cursor, int id){
 		return deleteStudent(cursor->right, id);
 	}
 	
-	
 	if (cursor->left != NULL && cursor->right != NULL){
-		cursor->left->left = cursor->left;
+		student_records* successor = findMin(cursor->right);
+		cursor->id = successor->id;
+		cursor->gpa = successor->gpa;
+		stringCopy(successor->major, &(cursor->major));
+		stringCopy(successor->first_name, &(cursor->first_name));
+		stringCopy(successor->last_name, &(cursor->last_name));
+		deleteStudent(successor, successor->id);
+		return 0;
 	}
-	if (cursor->left != NULL){
-		cursor->left->left =cursor->left;
-	}
-	if (cursor->right != NULL){
-		cursor->left->left = cursor->left;
-	}
-	free(cursor->first_name);
-	free(cursor->last_name);
-	free(cursor->major);
-	free(cursor);
+	else if (cursor->left != NULL)
+		replaceNode(cursor, cursor->left);
+	
+	else if (cursor->right != NULL)
+		replaceNode(cursor, cursor->right);
+		
+	else 
+		replaceNode(cursor, NULL);
 	return 0;
 }
 
 int addStudent(student_records* cursor, int id, char* firstName, char* lastName, float gpa, char* major){
-	if (cursor->parent == NULL){
-		cursor->id = id;
-		stringCopy(firstName, &(cursor->first_name));
-		stringCopy(lastName, &(cursor->last_name));
-		cursor->gpa = gpa;
-		stringCopy(major, &(cursor->major));
-		return 0;
-	}
-	
 	if (cursor->id == id){
 		return -1;
 	} else if (cursor->id < id){
 		if(cursor->right != NULL)
 			return addStudent(cursor->right, id, firstName, lastName, gpa, major);
+		
+		if (cursor->id == -1){
+			cursor->id = id;
+			stringCopy(firstName, &(cursor->first_name));
+			stringCopy(lastName, &(cursor->last_name));
+			cursor->gpa = gpa;
+			stringCopy(major, &(cursor->major));
+			return 0;
+		}
 		
 		student_records* add;
 		add = (student_records*)malloc(sizeof(student_records));
@@ -248,7 +269,7 @@ int addStudent(student_records* cursor, int id, char* firstName, char* lastName,
 		cursor->right = add;
 
 		return 0;
-	} else if (cursor->id > id){
+	} else {
 		if (cursor->left != NULL)
 			return addStudent(cursor->left, id, firstName, lastName, gpa, major);
 			
@@ -259,6 +280,7 @@ int addStudent(student_records* cursor, int id, char* firstName, char* lastName,
 		add->right = NULL;
 		add->parent = cursor;
 		add->id = id;
+		add->filter = 1;
 		stringCopy(firstName, &(add->first_name));
 		stringCopy(lastName, &(add->last_name));
 		add->gpa = gpa;
@@ -276,7 +298,7 @@ int updateStudent(student_records* cursor, int id, char* firstName, char* lastNa
 		cursor->gpa = gpa;
 		stringCopy(major, &(cursor->major));
 		return 0;
-	} else if(cursor->id < id) {
+	} else if(cursor->id > id) {
 		if (cursor->left == NULL) return -1;
 		return updateStudent(cursor->left, id, firstName, lastName, gpa, major);
 	} else {
@@ -298,7 +320,7 @@ int stringCopy(char* source, char** dest){
 }
 
 float calcAverage(student_records* cursor, int* total){
-	*total = (*total)++;
+	(*total)++;
 	float sum = cursor->gpa;
 	if (cursor->left != NULL)
 		sum += calcAverage(cursor->left, total);
@@ -314,6 +336,45 @@ void printTree(student_records* cursor){
 		fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
 	if (cursor->right != NULL)
 		printTree(cursor->right);
+}
+
+void filterID(student_records* cursor, int id, int* students){
+	if (*students == 0) return;
+	
+	if (cursor->left != NULL)
+		filterID(cursor->left, id, students);
+	if(cursor->filter && cursor->id != id){
+		cursor->filter = 0;
+		(*students)--;
+	}
+	if (cursor->right != NULL)
+		filterID(cursor->right, id, students);
+}
+
+void filterMajor(student_records* cursor, char* major, int* students){
+	if (*students == 0) return;
+	
+	if (cursor->left != NULL)
+		filterMajor(cursor->left, major, students);
+	if(cursor->filter && stringEquals(major, cursor->major) == 0){
+		cursor->filter = 0;
+		(*students)--;
+	}
+	if (cursor->right != NULL)
+		filterMajor(cursor->right, major, students);
+}
+
+void filterLastName(student_records* cursor, char* lName, int* students){
+	if (*students == 0) return;
+	
+	if (cursor->left != NULL)
+		filterLastName(cursor->left, lName, students);
+	if(cursor->filter && stringEquals(lName, cursor->last_name) == 0){
+		cursor->filter = 0;
+		(*students)--;
+	}
+	if (cursor->right != NULL)
+		filterLastName(cursor->right, lName, students);
 }
 
 int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
@@ -333,46 +394,18 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 	 		printf("OTHER ERROR\n");
 	 		return -1;
 	 	}
-	 	
-		if (id != NULL){ //MATCH ID
-			cursor = database;
-			int i = stringToInt(id);
-			while(cursor != NULL){
-				if (i != cursor->id){
-					cursor->filter = 0;
-					numStudents--;
-				}
-			}
-		}
-		if (lastName != NULL){
-			cursor = database;
-			while(cursor != NULL){
-				if (stringEquals(cursor->last_name, lastName) == 0 && cursor->filter){
-					cursor->filter = 0;
-					numStudents--;
-				}
-			}
-		} 
-		if (major != NULL){
-			cursor = database;
-			while(cursor != NULL){
-				if (stringEquals(cursor->major, major) == 0 && cursor->filter){
-					cursor->filter = 0;
-					numStudents--;
-				}
-			}
-		}
-		if (numStudents > 0){
-			cursor = database;
-			while(cursor != NULL){
-				if(cursor->filter)
-					fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
-			}
-		} else {
+		if (id != NULL) //MATCH ID
+			filterID(database, stringToInt(id), &numStudents);
+		if (lastName != NULL)
+			filterLastName(database, lastName, &numStudents);
+		if (major != NULL)
+			filterMajor(database, major, &numStudents);
+		if (numStudents > 0)
+			printTree(database);
+		else 
 			printf("STUDENT RECORD NOT FOUND");
-		}
 		return 0;
-		}
+	}
 }
 
 int stringEquals(char* s1, char* s2){

@@ -247,6 +247,7 @@ int addStudent(int id, char* firstName, char* lastName, float gpa, char* major){
 			add->next = cursor;
 			add->prev = cursor->prev;
 			add->id = id;
+			add->filter = 1;
 			stringCopy(firstName, &(add->first_name));
 			stringCopy(lastName, &(add->last_name));
 			add->gpa = gpa;
