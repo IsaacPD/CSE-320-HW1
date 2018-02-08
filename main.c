@@ -201,6 +201,9 @@ int deleteStudent(int id){
 			if (cursor->next != NULL){
 				cursor->next->prev = cursor->prev;
 			}
+			if (cursor == database) {
+				database = cursor->next;
+			}
 			free(cursor->first_name);
 			free(cursor->last_name);
 			free(cursor->major);
@@ -305,11 +308,10 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 		numStudents++;
 	}
 	average = average/(float)total;
-	
-	if (gflag)
+	if (gflag && vflag){
 		fprintf(out, "%.2f\n", average);
-	
-	if (vflag && id == NULL && lastName == NULL && major == NULL){
+	}
+	else if (vflag && id == NULL && lastName == NULL && major == NULL){
 		cursor = database;
 		while(cursor != NULL){
 			fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
@@ -355,18 +357,28 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 				cursor = cursor->next;
 			}
 		}
-		if (numStudents > 0){
+		if (numStudents > 0 && gflag == 0){
 			cursor = database;
 			while(cursor != NULL){
 				if(cursor->filter)
 					fprintf(out, "%d %s %s %.2f %s\n", cursor->id, cursor->first_name, cursor->last_name, cursor->gpa, cursor->major);
 				cursor = cursor->next;
 			}
+		} else if (gflag){
+			cursor = database;
+			average = 0;
+			while(cursor != NULL){
+				if(cursor->filter)
+					average += cursor->gpa;
+				cursor = cursor->next;
+			}
+			average = average/(float)numStudents;
+			fprintf(out, "%.2f\n", average);
 		} else {
 			printf("STUDENT RECORD NOT FOUND");
 		}
 		return 0;
-		}
+	}
 }
 
 int stringEquals(char* s1, char* s2){

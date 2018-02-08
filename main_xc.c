@@ -203,7 +203,7 @@ void replaceNode(student_records* delete, student_records* replacement){
 			delete->parent->left = replacement;
 		else 
 			delete->parent->right = replacement;		
-	}
+	} else database = replacement;
 	if (replacement != NULL)
 		replacement->parent = delete->parent;
 }
