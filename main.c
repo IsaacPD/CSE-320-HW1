@@ -378,6 +378,9 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 			printf("STUDENT RECORD NOT FOUND");
 		}
 		return 0;
+	} else {
+		printf("OTHER ERROR\n");
+		return -1;
 	}
 }
 
