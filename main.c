@@ -93,7 +93,7 @@ int main(int argc, char** argv) {
 				gflag = 1;
 				break;
 			default:
-				printf("FAILED TO PARSE FILE\n");
+				printf("OTHER ERROR\n");
 				freeDatabase();
 				fclose(file);
 				return 1;
