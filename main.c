@@ -53,11 +53,15 @@ int main(int argc, char** argv) {
 		freeDatabase();
 		return 1;
   }
-	
-	file = fopen(*(argv+1), "r+");
-	if (loadDatabase() == -1) {
-		fclose(file);
-		free(database);
+	if(access(*(argv+1), F_OK) == 0){
+		file = fopen(*(argv+1), "r+");
+		if (loadDatabase() == -1) {
+			fclose(file);
+			free(database);
+			return -1;
+		}
+	} else {
+		printf("FAILED TO PARSE FILE\n");
 		return -1;
 	}
   	
