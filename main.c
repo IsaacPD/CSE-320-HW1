@@ -55,8 +55,8 @@ int main(int argc, char** argv) {
 	
 	file = fopen(*(argv+1), "r+");
 	if (loadDatabase() == -1) {
-		freeDatabase();
 		fclose(file);
+		free(database);
 		return -1;
 	}
   	
@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	processFlags(vflag, id, lastname, major, gflag);
-	
+		
 	freeDatabase();
 	fclose(file);
 	if (out != stdout) fclose(out);
@@ -113,9 +113,12 @@ void freeDatabase(){
 
 	while(next != NULL){
 		next = next->next;
-		free(current->first_name);
-		free(current->last_name);
-		free(current->major);
+		if (current->first_name != NULL)
+			free(current->first_name);
+		if (current->last_name != NULL)
+			free(current->last_name);
+		if(current->major != NULL)
+			free(current->major);
 		free(current);
 		current = next;
 	}
@@ -133,6 +136,10 @@ int loadDatabase(){
 	do{
 		c = fscanf(file, "%s", command);
 		if (c == EOF) {
+			if (database->id == -1){
+				printf("FAILED TO PARSE FILE\n");
+				goto free_error;
+			}
 			free(command);
 			free(fName);
 			free(lName);
@@ -205,9 +212,6 @@ int deleteStudent(int id){
 			if (cursor == database) {
 				database = cursor->next;
 			}
-			free(cursor->first_name);
-			free(cursor->last_name);
-			free(cursor->major);
 			free(cursor);
 			return 0;
 		} else {
