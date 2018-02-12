@@ -1,5 +1,7 @@
-ADD 3 Isaac Duarte 3.32 CSE
-ADD 7 Bill Nye 2.11 CHE
-ADD 4 Amber Lin 3.45 ISE
-UPDATE 7 Bill Buy 2.46 CHE
-DEL 4
+ADD 3 john doe 3.43 AMS
+ADD 5 mary jane 3.87 ART
+DELETE 5
+ADD 99 harry poTTeR 3.81 GRI
+Expected output:
+3 John Doe 3.43 AMS
+99 Harry Potter 3.81 GRI

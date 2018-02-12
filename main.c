@@ -376,7 +376,7 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 			average = average/(float)numStudents;
 			fprintf(out, "%.2f\n", average);
 		} else {
-			printf("STUDENT RECORD NOT FOUND");
+			printf("STUDENT RECORD NOT FOUND\n");
 		}
 		return 0;
 	} else {
