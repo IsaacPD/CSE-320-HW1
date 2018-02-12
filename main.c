@@ -32,6 +32,7 @@ student_records* database;
 FILE* file;
 FILE* out;
 
+//Main
 int main(int argc, char** argv) {
 	int vflag = 0, gflag = 0;
 	char* id = NULL;
