@@ -13,6 +13,7 @@ int processFlags(int, char*, char*, char*, int);
 int stringEquals(char*, char*);
 int stringToInt(char*);
 int stringLen(char*, int);
+void makeName(char*);
 int formatted(int, char*, char*, float, char*);
 void freeDatabase();
 
@@ -154,8 +155,6 @@ int loadDatabase(){
 				fscanf(file, "%d %s %s %s ", &id, fName, lName, gpaS);
 				fseek(file, (-1 - stringLen(gpaS, 0)), SEEK_CUR);
 				fscanf(file, " %f %s", &gpa, major);
-				*fName = toupper(*fName);
-				*lName = toupper(*lName);
 				int i;
 				for (i = 0; i < 3; i++)
 					*(major + i) = toupper(*(major + i));
@@ -164,6 +163,8 @@ int loadDatabase(){
 					printf("FAILED TO PARSE FILE\n");
 					goto free_error;
 				}
+				makeName(fName);
+				makeName(lName);
 				
 				if (*command == 'A'){
 					if (addStudent(id, fName, lName, gpa, major) == -1){
@@ -427,4 +428,13 @@ int formatted(int id, char* fName, char* lName, float gpa, char* major){
 				&& mLen == 3 && gpa >= 1 && gpa <= 4)
 		return 1;
 	else return 0;
+}
+
+void makeName(char* name){
+	int len = stringLen(name, 0);
+	int i;
+	*name = toupper((*name));
+	for (i = 1; i < len; i++)
+		*(name+i) = tolower((*(name+i)));
+
 }
