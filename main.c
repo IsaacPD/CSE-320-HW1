@@ -9,7 +9,7 @@ int updateStudent(int, char*, char*, float, char*);
 int deleteStudent(int);
 int stringCopy(char*, char**);
 int loadDatabase();
-int processFlags(int, char*, char*, char*, int);
+int processFlags(int, char*, char*, char*, int, int);
 int stringEquals(char*, char*);
 int stringToInt(char*);
 int stringLen(char*, int);
@@ -35,7 +35,7 @@ FILE* out;
 
 //Main
 int main(int argc, char** argv) {
-	int vflag = 0, gflag = 0;
+	int vflag = 0, gflag = 0, oflag = 0;
 	char* id = NULL;
 	char* lastname = NULL;
 	char* major = NULL;
@@ -86,6 +86,7 @@ int main(int argc, char** argv) {
 					scanf(" %c", &yn);
 					if (yn == 'y'){
 						out = fopen(optarg, "w");
+						oflag = 1;
 					}
 					else {
 						printf("FILE EXISTS\n");
@@ -93,6 +94,7 @@ int main(int argc, char** argv) {
 					}
 				} else {
 					out = fopen(optarg, "w");
+					oflag = 1;
 				}
 				break;
 			case 'g':
@@ -105,7 +107,7 @@ int main(int argc, char** argv) {
 				return 1;
 		}
 	}
-	processFlags(vflag, id, lastname, major, gflag);
+	processFlags(vflag, id, lastname, major, gflag, oflag);
 		
 	freeDatabase();
 	fclose(file);
@@ -306,7 +308,7 @@ int stringCopy(char* source, char** dest){
 	return 0;
 }
 
-int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
+int processFlags(int vflag, char* id, char* lastName, char* major, int gflag, int oflag){
 	student_records* cursor = database;
 	int numStudents = 0;
 	float average = 0.0;
@@ -320,6 +322,10 @@ int processFlags(int vflag, char* id, char* lastName, char* major, int gflag){
 	average = average/(float)total;
 	if (gflag && vflag){
 		fprintf(out, "%.2f\n", average);
+	}
+	else if (oflag && !vflag && !gflag && id == NULL && lastName == NULL & major == NULL){
+		printf("OTHER ERROR\n");
+		return -1;
 	}
 	else if (vflag && id == NULL && lastName == NULL && major == NULL){
 		cursor = database;
